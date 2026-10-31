@@ -102,7 +102,6 @@ class QuantumEngineCore:
         success, msg = self.force_windows_gpu_preference()
         
         if success:
-            # Find the exact active executable path to relaunch instantly
             active_exe = max(exes, key=os.path.getmtime)
             logger_func("[SMART-ENGINE] Relaunching Roblox instantly with forced High-Performance GPU...")
             try:
@@ -112,6 +111,19 @@ class QuantumEngineCore:
                 msg += f" (GPU preference applied, but auto-relaunch failed: {str(e)})"
                 
         return success, msg
+
+    def trigger_ultimate_power_plan(self):
+        """Activates Windows High Performance / Ultimate Performance power scheme."""
+        try:
+            # Try Ultimate Performance GUID first, fallback to High Performance GUID
+            cmd = "powercfg -setactive e9a42b02-d5df-448d-aa00-03f14749eb61"
+            res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            if res.returncode != 0:
+                cmd = "powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
+                subprocess.run(cmd, shell=True, check=True)
+            return True, "Successfully activated High/Ultimate Performance Power Scheme!"
+        except Exception as e:
+            return False, f"Power Scheme Error: {str(e)}"
 
     def restore_factory_defaults(self):
         if self.is_roblox_running():
@@ -229,7 +241,10 @@ class ModernFluentApp(ctk.CTk):
         
         icon_path = "gpuicon.ico"
         if os.path.exists(icon_path):
-            self.iconbitmap(icon_path)
+            try:
+                self.iconbitmap(icon_path)
+            except:
+                pass
         
         self.engine = QuantumEngineCore()
         
@@ -375,6 +390,8 @@ class ModernFluentApp(ctk.CTk):
         if success:
             self.log_message(msg)
             messagebox.showinfo("Power Scheme", msg)
+        else:
+            messagebox.showerror("Error", msg)
 
     def toggle_guardian(self):
         if not self.engine.active_monitoring:
